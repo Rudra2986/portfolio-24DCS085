@@ -3,7 +3,7 @@ function Footer({ name }) {
     <footer className="footer">
       <p>Designed & Developed by {name}</p>
 
-      <p>React + Vite Practical 1</p>
+      <p>React + Vite Practical 2</p>
     </footer>
   );
 }
