@@ -1,43 +1,38 @@
+import React, { useState, useEffect } from 'react';
+import Spinner from './Spinner';
+import ErrorMessage from './ErrorMessage';
+import RepoList from './RepoList';
+
 function Projects() {
-  const projects = [
-    {
-      id: 1,
-      title: "Portfolio Website",
-      description: "A personal portfolio built with React and Vite.",
-      technologies: ["React", "CSS", "Vite"]
-    },
-    {
-      id: 2,
-      title: "Machine Learning Model",
-      description: "A predictive model for house prices.",
-      technologies: ["Python", "Scikit-Learn", "Pandas"]
-    },
-    {
-      id: 3,
-      title: "Task Management App",
-      description: "A full-stack app for managing daily tasks.",
-      technologies: ["MERN Stack", "Express", "Node.js"]
-    }
-  ];
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Replace 'octocat' with your GitHub username to show your own projects
+    fetch('https://api.github.com/users/Rudra2986/repos')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        setError(error.message);
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <div className="container projects-container">
-      <h2>My Projects</h2>
-      <div className="projects-grid">
-        {projects.map((project) => (
-          <div key={project.id} className="project-card">
-            <h3>{project.title}</h3>
-            <p>{project.description}</p>
-            <div className="tech-stack">
-              {project.technologies.map((tech, index) => (
-                <span key={index} className="tech-badge">
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <h2>My Projects (GitHub Repositories)</h2>
+      {loading && <Spinner />}
+      {error && <ErrorMessage message={error} />}
+      {!loading && !error && <RepoList data={data} />}
     </div>
   );
 }
