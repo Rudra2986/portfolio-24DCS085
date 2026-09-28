@@ -1,92 +1,77 @@
-const { tasks } = require("../data/tasks");
-
-let nextId = tasks.length ? Math.max(...tasks.map((t) => t.id)) + 1 : 1;
-
-const VALID_STATUSES = ["pending", "in-progress", "done"];
+const Task = require('../models/Task');
 
 // GET /api/tasks
-exports.getAllTasks = (req, res) => {
-  res.status(200).json({ success: true, count: tasks.length, data: tasks });
+exports.getAllTasks = async (req, res, next) => {
+  try {
+    const tasks = await Task.find({});
+    res.status(200).json({ success: true, count: tasks.length, data: tasks });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // GET /api/tasks/:id
-exports.getTaskById = (req, res, next) => {
-  const id = parseInt(req.params.id, 10);
-  const task = tasks.find((t) => t.id === id);
-
-  if (!task) {
-    const err = new Error(`Task with id ${id} not found`);
-    err.status = 404;
-    return next(err);
+exports.getTaskById = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      const err = new Error(`Task with id ${req.params.id} not found`);
+      err.status = 404;
+      return next(err);
+    }
+    res.status(200).json({ success: true, data: task });
+  } catch (err) {
+    next(err);
   }
-
-  res.status(200).json({ success: true, data: task });
 };
 
 // POST /api/tasks
-exports.createTask = (req, res, next) => {
-  const { title, description, status } = req.body || {};
-
-  if (!title || typeof title !== "string" || !title.trim()) {
-    const err = new Error("Title is required and must be a non-empty string");
-    err.status = 400;
-    return next(err);
+exports.createTask = async (req, res, next) => {
+  try {
+    const task = await Task.create(req.body);
+    res.status(201).json({ success: true, data: task });
+  } catch (err) {
+    // Check for Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      err.status = 400;
+    }
+    next(err);
   }
-
-  if (status && !VALID_STATUSES.includes(status)) {
-    const err = new Error(`Status must be one of: ${VALID_STATUSES.join(", ")}`);
-    err.status = 400;
-    return next(err);
-  }
-
-  const newTask = {
-    id: nextId++,
-    title: title.trim(),
-    description: description ? String(description).trim() : "",
-    status: status || "pending"
-  };
-
-  tasks.push(newTask);
-  res.status(201).json({ success: true, data: newTask });
 };
 
 // PUT /api/tasks/:id
-exports.updateTask = (req, res, next) => {
-  const id = parseInt(req.params.id, 10);
-  const task = tasks.find((t) => t.id === id);
+exports.updateTask = async (req, res, next) => {
+  try {
+    const task = await Task.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    });
 
-  if (!task) {
-    const err = new Error(`Task with id ${id} not found`);
-    err.status = 404;
-    return next(err);
+    if (!task) {
+      const err = new Error(`Task with id ${req.params.id} not found`);
+      err.status = 404;
+      return next(err);
+    }
+    res.status(200).json({ success: true, data: task });
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      err.status = 400;
+    }
+    next(err);
   }
-
-  const { title, description, status } = req.body || {};
-
-  if (status && !VALID_STATUSES.includes(status)) {
-    const err = new Error(`Status must be one of: ${VALID_STATUSES.join(", ")}`);
-    err.status = 400;
-    return next(err);
-  }
-
-  if (title !== undefined) task.title = String(title).trim();
-  if (description !== undefined) task.description = String(description).trim();
-  if (status !== undefined) task.status = status;
-
-  res.status(200).json({ success: true, data: task });
 };
 
 // DELETE /api/tasks/:id
-exports.deleteTask = (req, res, next) => {
-  const id = parseInt(req.params.id, 10);
-  const index = tasks.findIndex((t) => t.id === id);
-
-  if (index === -1) {
-    const err = new Error(`Task with id ${id} not found`);
-    err.status = 404;
-    return next(err);
+exports.deleteTask = async (req, res, next) => {
+  try {
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) {
+      const err = new Error(`Task with id ${req.params.id} not found`);
+      err.status = 404;
+      return next(err);
+    }
+    res.status(200).json({ success: true, data: task });
+  } catch (err) {
+    next(err);
   }
-
-  const [deleted] = tasks.splice(index, 1);
-  res.status(200).json({ success: true, data: deleted });
 };
